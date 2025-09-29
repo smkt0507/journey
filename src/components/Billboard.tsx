@@ -5,10 +5,10 @@ import { BILLBOARD_SPACING } from "../config";
 
 type BillboardProps = {
   index: number;
-  scrollY: number;
+  scrollYRef: React.RefObject<number>;
 };
 
-export const Billboard: React.FC<BillboardProps> = ({ index, scrollY }) => {
+export const Billboard: React.FC<BillboardProps> = ({ index, scrollYRef }) => {
   const groupRef = useRef<THREE.Group>(null);
 
   const boardWidth = 3;
@@ -23,7 +23,7 @@ export const Billboard: React.FC<BillboardProps> = ({ index, scrollY }) => {
 
   useFrame(() => {
     if (groupRef.current) {
-      let z = -index * BILLBOARD_SPACING + scrollY * 0.05; // SCROLL_FACTOR
+      let z = -index * BILLBOARD_SPACING + scrollYRef.current * 0.05; // SCROLL_FACTOR
       if (z > 5) z = -BILLBOARD_SPACING * 10; // リセット
       groupRef.current.position.z = z;
     }

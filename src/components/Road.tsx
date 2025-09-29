@@ -3,10 +3,10 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 type RoadProps = {
-  scrollY: number;
+  scrollYRef: React.RefObject<number>;
 };
 
-export const Road: React.FC<RoadProps> = ({ scrollY }) => {
+export const Road: React.FC<RoadProps> = ({ scrollYRef }) => {
   const meshRef = useRef<THREE.Mesh>(null);
 
   // CanvasTexture を一度だけ作成
@@ -34,7 +34,7 @@ export const Road: React.FC<RoadProps> = ({ scrollY }) => {
   // scrollY に応じてオフセット更新
   useFrame(() => {
     if (meshRef.current) {
-      texture.offset.y = -scrollY * 0.02;
+      texture.offset.y = -scrollYRef * 0.02;
     }
   });
 

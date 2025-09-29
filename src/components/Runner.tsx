@@ -1,43 +1,56 @@
-import { useRef } from "react";
-import React from "react";
+// RunnerFiber.tsx
+import React, { useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
+import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
-export const Runner: React.FC<{ scrollY: number }> = ({ scrollY }) => {
-  const lastScrollY = useRef(0); // 前フレームの scrollY を保持
-  const leftLegRef = useRef<THREE.Mesh>(null);
-  const rightLegRef = useRef<THREE.Mesh>(null);
+interface RunnerFiberProps {
+  scrollYRef: React.RefObject<number>;
+}
 
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime() * 1000;
-    const scrollSpeed = scrollY - lastScrollY.current; // 前フレームとの差分
-    lastScrollY.current = scrollY; // 今回のスクロールを次フレーム用に保存
+export const Runner: React.FC<RunnerFiberProps> = ({ scrollYRef }) => {
+  const gltf = useGLTF("/models/character.glb");
+  const modelRef = useRef<THREE.Group>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const lastScrollY = useRef(scrollYRef.current || 0);
 
-    if (Math.abs(scrollSpeed) > 0.1) {
-      leftLegRef.current!.rotation.x = Math.sin(time * 0.01) * 0.8;
-      rightLegRef.current!.rotation.x = Math.sin(time * 0.01 + Math.PI) * 0.8;
-    } else {
-      leftLegRef.current!.rotation.x = 0;
-      rightLegRef.current!.rotation.x = 0;
+  useEffect(() => {
+    if (modelRef.current && gltf.animations.length > 0) {
+      mixerRef.current = new THREE.AnimationMixer(modelRef.current);
+      gltf.animations.forEach((clip) => {
+        const action = mixerRef.current!.clipAction(clip);
+        action.play(); // とりあえず全クリップ再生してみる
+      });
     }
+  }, [gltf]);
+
+  useFrame((state, delta) => {
+    const currentScrollY = scrollYRef.current || 0;
+    const scrollSpeed = currentScrollY - lastScrollY.current;
+
+    // AnimationMixer 更新
+    if (mixerRef.current) {
+      // スクロール速度で足アニメーションを ON/OFF
+      mixerRef.current.timeScale = Math.abs(scrollSpeed) > 0.1 ? 1 : 0;
+      mixerRef.current.update(delta);
+    }
+
+    // キャラクター位置は固定（Z軸）
+    if (modelRef.current) {
+      modelRef.current.position.z = 0; // 道路上に固定
+    }
+
+    lastScrollY.current = currentScrollY;
   });
 
   return (
-    <group position-y={1.2}>
-      <mesh>
-        <boxGeometry args={[0.5, 1, 0.3]} />
-        <meshStandardMaterial color={0xdddddd} />
-      </mesh>
-
-      <mesh ref={leftLegRef} position={[-0.15, -0.85, 0]}>
-        <boxGeometry args={[0.2, 0.7, 0.2]} />
-        <meshStandardMaterial color={0x3333ff} />
-      </mesh>
-
-      <mesh ref={rightLegRef} position={[0.15, -0.85, 0]}>
-        <boxGeometry args={[0.2, 0.7, 0.2]} />
-        <meshStandardMaterial color={0x3333ff} />
-      </mesh>
-    </group>
+    <primitive
+      ref={modelRef}
+      object={gltf.scene}
+      position={[0, 0, 0]}
+      rotation={[0, Math.PI, 0]}
+    />
   );
 };
+
+useGLTF.preload("/models/character.glb");
