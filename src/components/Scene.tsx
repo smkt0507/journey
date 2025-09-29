@@ -1,89 +1,65 @@
-import React, { useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import Road from "../three/Road";
-import Billboard from "../three/Billboard";
-import Runner from "../three/Runner";
-import { BILLBOARD_COUNT, BILLBOARD_SPACING, SCROLL_FACTOR } from "../config";
+import { Billboard } from "./Billboard";
+import { Road } from "./Road";
+import { Runner } from "./Runner";
+import { BILLBOARD_COUNT } from "../config";
 
-const Scene: React.FC = () => {
-  const mountRef = useRef<HTMLDivElement>(null);
-
+const CameraController: React.FC = () => {
+  const { camera } = useThree();
   useEffect(() => {
-    if (!mountRef.current) return;
-    const mount = mountRef.current;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
     camera.position.set(0, 2, 6);
+    camera.lookAt(0, 1.2, 0); // Runner の高さに注視
+  }, [camera]);
+  return null;
+};
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    mount.appendChild(renderer.domElement);
+export const Scene: React.FC = () => {
+  const [scrollY, setScrollY] = useState(0);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    dirLight.position.set(5, 10, 5);
-    scene.add(dirLight);
-
-    const road = new Road();
-    scene.add(road.mesh);
-
-    const billboards: Billboard[] = [];
-    for (let i = 0; i < BILLBOARD_COUNT; i++) {
-      const b = new Billboard(i);
-      scene.add(b.group);
-      billboards.push(b);
-    }
-
-    const runner = new Runner();
-    scene.add(runner.group);
-
-    let lastScrollY = window.scrollY;
-
-    const animate = (time: number) => {
-      requestAnimationFrame(animate);
-
-      const currentScrollY = window.scrollY;
-      const scrollSpeed = currentScrollY - lastScrollY;
-      lastScrollY = currentScrollY;
-
-      // 看板
-      billboards.forEach((b, i) => {
-        const z = -i * BILLBOARD_SPACING + currentScrollY * SCROLL_FACTOR;
-        b.group.position.z = z;
-        if (z > 5) b.group.position.z = BILLBOARD_SPACING * -10;
-      });
-
-      // 道路
-      road.update(currentScrollY);
-
-      // 足アニメーション
-      runner.update(time, scrollSpeed);
-
-      renderer.render(scene, camera);
-    };
-    animate(0);
-
-    const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      renderer.dispose();
-      mount.removeChild(renderer.domElement);
-    };
+  // スクロール管理
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  return <div ref={mountRef} style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%" }} />;
+  return (
+    <Canvas
+      camera={{
+        position: [0, 2, 6],
+        fov: 60,
+      }}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+      }}
+      gl={{ antialias: true }}
+      onCreated={({ scene }) => {
+        scene.background = new THREE.Color(0x000000); // 黒に設定
+      }}
+    >
+      <CameraController />
+      {/* 照明 */}
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[5, 10, 5]} intensity={0.6} />
+
+      {/* 道路 */}
+      <Road scrollY={scrollY} />
+
+      {/* 看板 */}
+      {Array.from({ length: BILLBOARD_COUNT }).map((_, i) => (
+        <Billboard key={i} index={i} scrollY={scrollY} />
+      ))}
+
+      {/* 仮キャラクター */}
+      <Runner scrollY={scrollY} />
+    </Canvas>
+  );
 };
 
 export default Scene;
