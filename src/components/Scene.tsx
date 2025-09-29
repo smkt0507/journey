@@ -10,7 +10,7 @@ const CameraController: React.FC = () => {
   const { camera } = useThree();
   useEffect(() => {
     camera.position.set(0, 2, 6);
-    camera.lookAt(0, 1.2, 0); // Runner の高さに注視
+    camera.lookAt(0, 1.6, 0); // Runner の高さに注視
   }, [camera]);
   return null;
 };

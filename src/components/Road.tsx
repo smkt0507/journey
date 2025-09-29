@@ -14,7 +14,7 @@ export const Road: React.FC<RoadProps> = ({ scrollY }) => {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 256;
     const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#222";
+    ctx.fillStyle = "#555";
     ctx.fillRect(0, 0, 256, 256);
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = 20;
